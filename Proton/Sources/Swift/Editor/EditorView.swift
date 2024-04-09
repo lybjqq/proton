@@ -1056,6 +1056,7 @@ open class EditorView: UIView {
         self.attributedText = mutableAttr
         self.typingAttributes[.link] = nil
         self.typingAttributes[.underlineStyle] = nil
+        self.typingAttributes[.foregroundColor] = self.defaultColor
     }
     
 }
