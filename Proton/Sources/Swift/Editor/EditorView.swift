@@ -1052,6 +1052,17 @@ open class EditorView: UIView {
                 self.addAttributes([.link: url, .underlineStyle: NSUnderlineStyle.single.rawValue], at: matchRange)
            }
         }
+        
+        switch mode {
+        case .dark:
+            if let textColor = self.typingAttributes[.foregroundColor] as? UIColor,
+               textColor.hexString() == UIColor(hex: "0x001C30")!.hexString() {
+                self.typingAttributes[.foregroundColor] = UIColor.white
+            }
+        case .light:
+            break
+        }
+        
         self.typingAttributes[.link] = nil
         self.typingAttributes[.underlineStyle] = nil
     }

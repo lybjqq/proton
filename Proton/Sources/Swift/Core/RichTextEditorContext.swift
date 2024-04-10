@@ -121,6 +121,10 @@ class RichTextEditorContext: RichTextViewContext {
                 return false
             }
         }
+        
+        if text == " ", let richTextView = activeTextView, let editorView = richTextView.editorView {
+            editorView.detect()
+        }
 
         applyFontFixForEmojiIfRequired(in: richTextView, at: range)
         return true
@@ -213,10 +217,6 @@ class RichTextEditorContext: RichTextViewContext {
             }
             changeParagraph(on: editor)
             isEnter = false
-        }
-        
-        if replacementText == " ", let editorView = richTextView.editorView {
-            editorView.detect()
         }
         
         richTextView.richTextViewDelegate?.richTextView(richTextView, didChangeTextAtRange: richTextView.selectedRange)
