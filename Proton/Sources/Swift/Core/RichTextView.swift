@@ -789,7 +789,7 @@ class RichTextView: AutogrowingTextView {
                 NotificationCenter.default.post(name: ProtonNotificationName.paste, object: object)
             } else {
                 let attr = NSAttributedString(string: str)
-                NotificationCenter.default.post(name: ProtonNotificationName.paste, object: PasteModel(attr: attr, sourceFrom: .internal))
+                NotificationCenter.default.post(name: ProtonNotificationName.paste, object: PasteModel(attr: attr, sourceFrom: .outer))
             }
         }
     }
@@ -864,17 +864,6 @@ class RichTextView: AutogrowingTextView {
         }
 
         return caretRect
-//        guard isEditable else {
-//            return super.caretRect(for: position)
-//        }
-//
-//        let location = offset(from: beginningOfDocument, to: position)
-//        let lineRect = layoutManager.boundingRect(forGlyphRange: NSRange(location: location, length: 0), in: textContainer)
-//
-//        var caretRect = super.caretRect(for: position)
-//        caretRect.origin.y = lineRect.minY + textContainerInset.top
-//        caretRect.size.height = lineRect.height
-//        return caretRect
     }
     
     override func selectionRects(for range: UITextRange) -> [UITextSelectionRect] {
