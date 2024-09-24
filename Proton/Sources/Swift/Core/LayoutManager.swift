@@ -344,7 +344,7 @@ public class LayoutManager: NSLayoutManager {
         let markerRect: CGRect
         let topInset = layoutManagerDelegate?.textContainerInset.top ?? 0
         
-        if rect.height > (paraStyle.lineSpacing + font.pointSize) {
+        if rect.height >= (paraStyle.lineSpacing + font.pointSize) {
             rect = CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height - paraStyle.lineSpacing)
         }
         

@@ -857,7 +857,7 @@ class RichTextView: AutogrowingTextView {
         if location < (editorView?.contentLength ?? 0), location >= 1,
            let font = editorView?.attributedText.attribute(.font, at: location - 1, effectiveRange: nil) as? UIFont,
            let paragraphStyle = editorView?.attributedText.attribute(.paragraphStyle, at: location, effectiveRange: nil) as? NSParagraphStyle {
-            if (font.pointSize + paragraphStyle.lineSpacing) < caretRect.height {
+            if (font.pointSize + paragraphStyle.lineSpacing) <= caretRect.height {
                 caretRect.size.height = font.pointSize + 3
                 caretRect.origin.y += max(0, (lineRect.height - caretRect.size.height - paragraphStyle.lineSpacing))
             }
