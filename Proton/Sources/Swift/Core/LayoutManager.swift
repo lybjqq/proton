@@ -186,7 +186,6 @@ public class LayoutManager: NSLayoutManager {
             let paraStyle = textStorage.attribute(.paragraphStyle, at: characterRange.location, effectiveRange: nil) as? NSParagraphStyle ?? self.defaultParagraphStyle
             
             var adjustedRect = rect
-            // Account for height of line fragment based on styles defined in paragraph, like paragraphSpacing
             adjustedRect.size.height = usedRect.height
             if isPreviousLineComplete, skipMarker == false {
                 
@@ -218,7 +217,7 @@ public class LayoutManager: NSLayoutManager {
                 // TODO: should this be moved inside level > 0 check above?
             }
             lastLayoutParaStyle = paraStyle
-            lastLayoutRect = rect
+            lastLayoutRect = adjustedRect
             lastLayoutFont = font
         }
         
@@ -354,7 +353,8 @@ public class LayoutManager: NSLayoutManager {
             if let f = attr.attribute(.font, at: 0, effectiveRange: nil) as? UIFont {
                 attr.addAttribute(.font, value: f.withSize(font.pointSize), range: attr.fullRange)
             }
-            markerRect = CGRect(origin: CGPoint(x: rect.minX, y: rect.minY + topInset), size: CGSize(width: paraStyle.headIndent, height: rect.height))
+            let size = attr.boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: font.pointSize), options: [], context: nil)
+            markerRect = CGRect(origin: CGPoint(x: rect.minX, y: rect.minY + topInset), size: CGSize(width: paraStyle.headIndent, height: size.height))
             let rect = CGRect(x: 0, y: markerRect.minY, width: markerRect.width, height: markerRect.height)
             let itemView = ListItemView(frame: rect)
             itemView.render(with: .text(attr, markerRect), attrValue: attributeValue)

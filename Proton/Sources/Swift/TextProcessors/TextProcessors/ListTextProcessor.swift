@@ -47,8 +47,10 @@ public func changeParagraph(on editor: EditorView) {
             let number = NSMutableAttributedString(string: "\(item.value).")
             if let font = attr.attribute(.font, at: 0, effectiveRange: nil) as? UIFont {
                 number.addAttribute(.font, value: font, range: number.fullRange)
-                let markerSize = number.boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: font.pointSize), options: [], context: nil).size
-                let width = max(24, ceil(markerSize.width) + 8)
+                let trueFont = number.attribute(.font, at: 0, effectiveRange: nil) as! UIFont
+                let size = number.boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: trueFont.pointSize), options: [], context: nil).size
+                let value = Int(item.value) ?? 100
+                let width = trueFont.pointSize < 24 && value < 10 ? 24 : max(24, ceil(size.width) + 8)
                 if let paragraphStyle = attr.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle {
                     let p = paragraphStyle.mutableParagraphStyle
                     p.firstLineHeadIndent = width
