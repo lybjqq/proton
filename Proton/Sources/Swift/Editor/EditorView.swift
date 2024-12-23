@@ -1047,9 +1047,11 @@ open class EditorView: UIView {
     
     public func detect() {
         let detector = try! NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+        var range: NSRange? = nil
         detector.enumerateMatches(in: attributedText.string, options: [], range: NSMakeRange(0, attributedText.length)) { (match, _, _) in
             if let matchRange = match?.range, let url = match?.url {
                 self.addAttributes([.link: url, .underlineStyle: NSUnderlineStyle.single.rawValue], at: matchRange)
+                range = matchRange
            }
         }
         
@@ -1063,8 +1065,12 @@ open class EditorView: UIView {
             break
         }
         
-        self.typingAttributes[.link] = nil
-        self.typingAttributes[.underlineStyle] = nil
+        if let link = self.typingAttributes[.link] {
+            self.typingAttributes[.link] = nil
+            if let range, range.location >= 2, self.attributedText.attribute(.underlineStyle, at: range.location - 1, effectiveRange: nil) == nil {
+                self.typingAttributes[.underlineStyle] = nil
+            }
+        }
     }
     
 }
