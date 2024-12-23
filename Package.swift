@@ -20,7 +20,7 @@ import PackageDescription
 let package = Package(
     name: "Proton",
     platforms: [
-        .iOS(.v11),
+        .iOS(.v13),
     ],
     products: [
         .library(name: "Proton", targets: ["Proton"]),

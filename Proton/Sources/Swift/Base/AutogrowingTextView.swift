@@ -100,4 +100,5 @@ class AutogrowingTextView: UITextView {
         let insets = UIEdgeInsets(top: -textContainerInset.top, left: -textContainerInset.left, bottom: -textContainerInset.bottom, right: -textContainerInset.right)
         return boundingRect.inset(by: insets).size
     }
+    
 }

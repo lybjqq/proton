@@ -880,6 +880,7 @@ class RichTextView: AutogrowingTextView {
             }
         }
     }
+    
 }
 
 extension RichTextView: NSLayoutManagerDelegate {
