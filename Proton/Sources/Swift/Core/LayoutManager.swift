@@ -700,9 +700,14 @@ public class LayoutManager: NSLayoutManager {
                     let lineHeightMultipleOffset = (rect.size.height - rect.size.height/lineHeightMultiple)
                     let lineSpacing = paragraphStyle.lineSpacing
                     if backgroundStyle.widthMode == .matchText {
-                        let content = textStorage.attributedSubstring(from: rangeIntersection)
-                        let contentWidth = content.boundingRect(with: rect.size, options: [.usesDeviceMetrics, .usesFontLeading], context: nil).width
-                        rect.size.width = contentWidth
+                        let textLength = textStorage.length
+                        if rangeIntersection.location >= 0, rangeIntersection.location < textLength {
+                            let safeLength = min(rangeIntersection.length, textLength - rangeIntersection.location)
+                            let safeRange = NSRange(location: rangeIntersection.location, length: safeLength)
+                            let content = textStorage.attributedSubstring(from: safeRange)
+                            let contentWidth = content.boundingRect(with: rect.size, options: [.usesDeviceMetrics, .usesFontLeading], context: nil).width
+                            rect.size.width = contentWidth
+                        }
                     }
 
                     let inset = self.layoutManagerDelegate?.textContainerInset ?? .zero
