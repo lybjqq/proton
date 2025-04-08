@@ -25,6 +25,8 @@ class ListItemView: UIView {
     
     lazy var imageView: UIImageView = {
         let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        imageView.layer.masksToBounds = true
         return imageView
     }()
     
@@ -44,7 +46,7 @@ class ListItemView: UIView {
         imageView.image = image
     }
     
-    func render(with type: ListItemViewType, attrValue: String) {
+    func render(with type: ListItemViewType, attrValue: String, imageSize: CGSize? = nil) {
         guard #available(iOS 13.0, *) else { return }
         self.isUserInteractionEnabled = attrValue == "listItemCheckList" || attrValue == "listItemSelectedChecklist"
         switch type {
@@ -64,7 +66,8 @@ class ListItemView: UIView {
                     imageView.image = image
                 }
             }
-            imageView.frame = CGRect(x: frame.midX - image.size.width / 2, y: (frame.height - image.size.height) / 2, width: image.size.width, height: image.size.height)
+            let size = imageSize ?? image.size
+            imageView.frame = CGRect(x: frame.midX - size.width / 2, y: (frame.height - size.height) / 2, width: size.width, height: size.height)
         case let .text(attr, rect):
             let markerSize = attr.boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: rect.height), options: [], context: nil).size
             if markerSize.width > frame.width {

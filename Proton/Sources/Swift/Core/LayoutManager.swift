@@ -25,6 +25,7 @@ struct ListItemViewModel {
     var view: UIView
     var attrValue: String
     var listItemViewType: ListItemViewType
+    var imageSize: CGSize? = nil
 }
 
 protocol LayoutManagerDelegate: AnyObject {
@@ -283,7 +284,8 @@ public class LayoutManager: NSLayoutManager {
                                let v = subview as? ListItemView {
                                 v.render(
                                     with: item.listItemViewType,
-                                    attrValue: item.attrValue
+                                    attrValue: item.attrValue,
+                                    imageSize: item.imageSize
                                 )
                             }
                         }
@@ -330,6 +332,15 @@ public class LayoutManager: NSLayoutManager {
         }
     }
     
+    private func findSameListItemView(by rect: CGRect) -> ListItemView {
+        for model in listItemViewModels {
+            if model.view.frame == rect {
+                return (model.view as? ListItemView) ?? ListItemView(frame: rect)
+            }
+        }
+        return ListItemView(frame: rect)
+    }
+    
     private func drawListItem(level: Int, previousLevel: Int, index: Int, rect: CGRect, paraStyle: NSParagraphStyle, font: UIFont, attributeValue: Any?) {
         guard level > 0, let attributeValue = attributeValue as? String else { return }
         
@@ -356,45 +367,48 @@ public class LayoutManager: NSLayoutManager {
             let size = attr.boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: font.pointSize), options: [], context: nil)
             markerRect = CGRect(origin: CGPoint(x: rect.minX, y: rect.minY + topInset), size: CGSize(width: paraStyle.headIndent, height: size.height))
             let rect = CGRect(x: 0, y: markerRect.minY, width: markerRect.width, height: markerRect.height)
-            let itemView = ListItemView(frame: rect)
+            let itemView = findSameListItemView(by: rect)
             itemView.render(with: .text(attr, markerRect), attrValue: attributeValue)
             listItemViewModels.append(
                 ListItemViewModel(
                     view: itemView,
                     attrValue: attributeValue,
-                    listItemViewType: .text(attr, markerRect)
+                    listItemViewType: .text(attr, markerRect),
+                    imageSize: nil
                 )
             )
         case let .image(image, size):
             var imageSize = size
-            if size.width != 16 {
+            if attributeValue == "listItemBullet" || size.width != 16 {
                 let width = max(3, min(10, font.pointSize / 3))
                 imageSize = CGSize(width: width, height: width)
             }
             markerRect = CGRect(origin: CGPoint(x: rect.minX, y: rect.minY + topInset), size: CGSize(width: paraStyle.firstLineHeadIndent, height: rect.height))
-            listMarkerImage = image.resizeImage(to: imageSize).withRenderingMode(image.renderingMode)
             
+            listMarkerImage = image.withRenderingMode(image.renderingMode)
+            
+            let rect = CGRect(x: 0, y: markerRect.minY, width: markerRect.width, height: markerRect.height)
+            let itemView = findSameListItemView(by: rect)
             if size.width == 16 {
-                let rect = CGRect(x: 0, y: markerRect.minY, width: markerRect.width, height: markerRect.height)
-                let itemView = ListItemView(frame: rect)
                 let checked = attributeValue == "listItemSelectedChecklist"
-                itemView.render(with: .image(listMarkerImage, checked), attrValue: attributeValue)
+                itemView.render(with: .image(listMarkerImage, checked), attrValue: attributeValue, imageSize: imageSize)
                 listItemViewModels.append(
                     ListItemViewModel(
                         view: itemView,
                         attrValue: attributeValue,
-                        listItemViewType: .image(listMarkerImage, checked)
+                        listItemViewType: .image(listMarkerImage, checked),
+                        imageSize: imageSize
                     )
                 )
             } else {
-                let rect = CGRect(x: 0, y: markerRect.minY, width: markerRect.width, height: markerRect.height)
-                let itemView = ListItemView(frame: rect)
-                itemView.render(with: .image(listMarkerImage, false), attrValue: attributeValue)
+                let itemView = findSameListItemView(by: rect)
+                itemView.render(with: .image(listMarkerImage, false), attrValue: attributeValue, imageSize: imageSize)
                 listItemViewModels.append(
                     ListItemViewModel(
                         view: itemView,
                         attrValue: attributeValue,
-                        listItemViewType: .image(listMarkerImage, false)
+                        listItemViewType: .image(listMarkerImage, false),
+                        imageSize: imageSize
                     )
                 )
             }
