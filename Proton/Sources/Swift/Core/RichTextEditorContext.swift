@@ -43,7 +43,7 @@ class RichTextEditorContext: RichTextViewContext {
         richTextView.richTextViewDelegate?.richTextView(richTextView, didReceiveFocusAt: range)
         var attributes = [NSAttributedString.Key:Any]()
         if richTextView.selectedRange.endLocation < richTextView.contentLength {
-            attributes = richTextView.attributedText.attributes(at: range.endLocation, effectiveRange: nil)
+            attributes = richTextView.attributedText.attributes(at: min(range.endLocation, richTextView.contentLength - 1), effectiveRange: nil)
         } else {
             attributes = richTextView.defaultTypingAttributes
         }
@@ -416,7 +416,7 @@ class RichTextEditorContext: RichTextViewContext {
                 stop.pointee = true
             }
         }
-        return fontToApply ?? textView.defaultFont
+        return fontToApply ?? (textView.superview as? EditorView)?.font ?? textView.defaultFont
     }
 }
 

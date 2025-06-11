@@ -84,7 +84,7 @@ class ListItemView: UIView {
             }
             textLabel.isHidden = false
             imageView.isHidden = true
-        }
+        }        
     }
     
     private func setUp() {

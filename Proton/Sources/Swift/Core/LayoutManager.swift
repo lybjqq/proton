@@ -364,8 +364,7 @@ public class LayoutManager: NSLayoutManager {
             if let f = attr.attribute(.font, at: 0, effectiveRange: nil) as? UIFont {
                 attr.addAttribute(.font, value: f.withSize(font.pointSize), range: attr.fullRange)
             }
-            let size = attr.boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: font.pointSize), options: [], context: nil)
-            markerRect = CGRect(origin: CGPoint(x: rect.minX, y: rect.minY + topInset), size: CGSize(width: paraStyle.headIndent, height: size.height))
+            markerRect = CGRect(origin: CGPoint(x: rect.minX, y: rect.minY + topInset), size: CGSize(width: paraStyle.headIndent, height: font.pointSize))
             let rect = CGRect(x: 0, y: markerRect.minY, width: markerRect.width, height: markerRect.height)
             let itemView = findSameListItemView(by: rect)
             itemView.render(with: .text(attr, markerRect), attrValue: attributeValue)
@@ -718,7 +717,7 @@ public class LayoutManager: NSLayoutManager {
                         if rangeIntersection.location >= 0, rangeIntersection.location < textLength {
                             let safeLength = min(rangeIntersection.length, textLength - rangeIntersection.location)
                             let safeRange = NSRange(location: rangeIntersection.location, length: safeLength)
-                            let content = textStorage.attributedSubstring(from: safeRange)
+                            let content = textStorage.attributedSubstring(from: safeRange.clamped(to: textLength))
                             let contentWidth = content.boundingRect(with: rect.size, options: [.usesDeviceMetrics, .usesFontLeading], context: nil).width
                             rect.size.width = contentWidth
                         }
@@ -1259,4 +1258,15 @@ public class EditorMarkerManager {
         }
     }
     
+}
+
+extension NSRange {
+    func clamped(to maxLength: Int) -> NSRange {
+        guard maxLength > 0 else { return NSRange(location: 0, length: 0) }
+
+        let safeLocation = max(0, min(self.location, maxLength))
+        let safeLength = max(0, min(self.length, maxLength - safeLocation))
+
+        return NSRange(location: safeLocation, length: safeLength)
+    }
 }
