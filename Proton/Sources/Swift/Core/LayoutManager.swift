@@ -734,6 +734,10 @@ public class LayoutManager: NSLayoutManager {
                         rect.size.width = contentWidth
                         rect.origin.x = max(5, rect.origin.x)
                     case .matchText:
+                        guard bgStyleGlyphRange.location >= 0 &&
+                                bgStyleGlyphRange.location + bgStyleGlyphRange.length <= textStorage.length else {
+                            return
+                        }
                         let styledText = textStorage.attributedSubstring(from: bgStyleGlyphRange)
                         let textRect = styledText.boundingRect(with: rect.size, options: .usesFontLeading, context: nil)
 

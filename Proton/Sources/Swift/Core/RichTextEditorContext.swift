@@ -306,10 +306,10 @@ class RichTextEditorContext: RichTextViewContext {
                let newLineListItem = editor.attributedText.attribute(.listItem, at: range.location, effectiveRange: nil) as? String {
                 editor.addAttribute(.listItem, value: newLineListItem, at: currentLine.range)
                 editor.addAttribute(.listItemValue, value: editor.attributedText.attribute(.listItemValue, at: range.location, effectiveRange: nil), at: currentLine.range)
-                if newLineListItem != "listItemSelectedChecklist" {
-                    editor.removeAttribute(.strikethroughStyle, at: currentLine.range)
-                    editor.removeAttribute(.strokeColor, at: currentLine.range)
-                }
+//                if newLineListItem != "listItemSelectedChecklist" {
+//                    editor.removeAttribute(.strikethroughStyle, at: currentLine.range)
+//                    editor.removeAttribute(.strokeColor, at: currentLine.range)
+//                }
                 let attr = editor.attributedText
                 editor.attributedText.enumerateAttributes(in: currentLine.range) { attrs, range, stop in
                     let subAttr = attr.attributedSubstring(from: range)
@@ -332,10 +332,10 @@ class RichTextEditorContext: RichTextViewContext {
             }
             
             if let value = currentLine.text.attribute(.listItem, at: 0, effectiveRange: nil) as? String {
-                if value != "listItemSelectedChecklist" {
-                    editor.removeAttribute(.strikethroughStyle, at: currentLine.range)
-                    editor.removeAttribute(.strikethroughColor, at: currentLine.range)
-                }
+//                if value != "listItemSelectedChecklist" {
+//                    editor.removeAttribute(.strikethroughStyle, at: currentLine.range)
+//                    editor.removeAttribute(.strikethroughColor, at: currentLine.range)
+//                }
                 let attr = editor.attributedText
                 editor.attributedText.enumerateAttributes(in: currentLine.range) { attrs, range, stop in
                     let subAttr = attr.attributedSubstring(from: range)
