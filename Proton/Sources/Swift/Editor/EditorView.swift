@@ -241,6 +241,31 @@ open class EditorView: UIView {
         set { richTextView.inputView = newValue }
     }
 
+    /// Hides the keyboard shortcut bar (input assistant) by clearing leading/trailing button groups
+    public func hideInputAssistant() {
+        richTextView.inputAssistantItem.leadingBarButtonGroups = []
+        richTextView.inputAssistantItem.trailingBarButtonGroups = []
+        richTextView.reloadInputViews()
+    }
+
+    /// Restores the keyboard shortcut bar (input assistant) with the given button groups
+    public func restoreInputAssistant(leading: [UIBarButtonItemGroup], trailing: [UIBarButtonItemGroup]) {
+        richTextView.inputAssistantItem.leadingBarButtonGroups = leading
+        richTextView.inputAssistantItem.trailingBarButtonGroups = trailing
+        richTextView.reloadInputViews()
+    }
+
+    /// Returns the current leading and trailing bar button groups of the input assistant
+    public func inputAssistantGroups() -> (leading: [UIBarButtonItemGroup], trailing: [UIBarButtonItemGroup]) {
+        return (richTextView.inputAssistantItem.leadingBarButtonGroups,
+                richTextView.inputAssistantItem.trailingBarButtonGroups)
+    }
+
+    /// Forces the system to rebuild the input views (keyboard, inputView, inputAccessoryView)
+    public func reloadEditorInputViews() {
+        richTextView.reloadInputViews()
+    }
+
     required public init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

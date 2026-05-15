@@ -87,7 +87,12 @@ public extension EditorView {
         
         horizontalShapeLayer.path = path.cgPath
         horizontalShapeLayer.lineWidth = horizontalLineStyle.lineWidth
-        horizontalShapeLayer.lineDashPattern = [2, 1]
+        switch horizontalLineStyle.lineStyle {
+        case .normal:
+            horizontalShapeLayer.lineDashPattern = []
+        case .dash:
+            horizontalShapeLayer.lineDashPattern = [2, 1]
+        }
         horizontalShapeLayer.strokeColor = horizontalLineStyle.lineColor.cgColor
     }
     

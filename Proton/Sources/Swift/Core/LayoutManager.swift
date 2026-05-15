@@ -204,13 +204,13 @@ public class LayoutManager: NSLayoutManager {
                     }
                     
                     if level > 0 {
-                        self.drawListItem(level: level, previousLevel: previousLevel, index: self.numberDict[listItemValue, default: 0], rect: adjustedRect, paraStyle: paraStyle, font: font, attributeValue: attributeValue)
+                        self.drawListItem(level: level, previousLevel: previousLevel, index: self.numberDict[listItemValue, default: 0], rect: adjustedRect, paraStyle: paraStyle, font: font, attributeValue: attributeValue, characterRange: characterRange)
                         self.numberDict[listItemValue, default: 0] += 1
                     }
                     
                 } else {
                     self.counters[level] = 0
-                    self.drawListItem(level: level, previousLevel: previousLevel, index: 0, rect: adjustedRect, paraStyle: paraStyle, font: font, attributeValue: attributeValue)
+                    self.drawListItem(level: level, previousLevel: previousLevel, index: 0, rect: adjustedRect, paraStyle: paraStyle, font: font, attributeValue: attributeValue, characterRange: characterRange)
                 }
                 
                 previousLevel = level
@@ -341,7 +341,16 @@ public class LayoutManager: NSLayoutManager {
         return ListItemView(frame: rect)
     }
     
-    private func drawListItem(level: Int, previousLevel: Int, index: Int, rect: CGRect, paraStyle: NSParagraphStyle, font: UIFont, attributeValue: Any?) {
+    private func drawListItem(
+        level: Int,
+        previousLevel: Int,
+        index: Int,
+        rect: CGRect,
+        paraStyle: NSParagraphStyle,
+        font: UIFont,
+        attributeValue: Any?,
+        characterRange: NSRange? = nil
+    ) {
         guard level > 0, let attributeValue = attributeValue as? String else { return }
         
         var rect = rect
@@ -364,7 +373,7 @@ public class LayoutManager: NSLayoutManager {
             if let f = attr.attribute(.font, at: 0, effectiveRange: nil) as? UIFont {
                 attr.addAttribute(.font, value: f.withSize(font.pointSize), range: attr.fullRange)
             }
-            markerRect = CGRect(origin: CGPoint(x: rect.minX, y: rect.minY + topInset), size: CGSize(width: paraStyle.headIndent, height: font.pointSize))
+            markerRect = CGRect(origin: CGPoint(x: rect.minX, y: rect.minY + topInset), size: CGSize(width: paraStyle.headIndent, height: font.pointSize + 3))
             let rect = CGRect(x: 0, y: markerRect.minY, width: markerRect.width, height: markerRect.height)
             let itemView = findSameListItemView(by: rect)
             itemView.render(with: .text(attr, markerRect), attrValue: attributeValue)
