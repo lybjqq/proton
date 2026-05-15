@@ -244,6 +244,7 @@ class RichTextEditorContext: RichTextViewContext {
         guard let editor = textView.superview as? EditorView else { return }
         
         if let line = editor.currentLayoutLine,
+           line.range.location >= 1,
            editor.attributedText.substring(from: NSRange(location: line.range.location - 1, length: 1)) == ListTextProcessor.blankLineFiller {
             return
         }
