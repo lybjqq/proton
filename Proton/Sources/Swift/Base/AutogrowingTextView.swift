@@ -27,8 +27,11 @@ class AutogrowingTextView: UITextView {
     private var allowAutogrowing: Bool
     weak var boundsObserver: BoundsObserving?
     private var maxHeightConstraint: NSLayoutConstraint!
-    private var heightAnchorConstraint: NSLayoutConstraint!
+    private var heightAnchorConstraint: NSLayoutConstraint?
     private var isSizeRecalculationRequired = true
+    private var lastHeightCalculationKey: HeightCalculationKey?
+    private var lastCalculatedSize: CGSize?
+    private static let largeTextMeasurementThreshold = 20_000
     
     let lineSpacing = 29.0
 
@@ -36,17 +39,38 @@ class AutogrowingTextView: UITextView {
         self.allowAutogrowing = allowAutogrowing
         super.init(frame: frame, textContainer: textContainer)
         isScrollEnabled = false
-        heightAnchorConstraint = heightAnchor.constraint(greaterThanOrEqualToConstant: contentSize.height)
-        heightAnchorConstraint.priority = .defaultHigh
-        if allowAutogrowing {
-            NSLayoutConstraint.activate([
-                heightAnchorConstraint
-            ])
-        }
+        addHeightConstraint()
+        contentMode = .redraw
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    func setAutogrowing(_ isAutogrowing: Bool) {
+        guard allowAutogrowing != isAutogrowing else { return }
+        allowAutogrowing = isAutogrowing
+        lastHeightCalculationKey = nil
+        lastCalculatedSize = nil
+
+        if allowAutogrowing {
+            addHeightConstraint()
+            recalculateHeight()
+        } else {
+            isScrollEnabled = false
+            if let heightAnchorConstraint = heightAnchorConstraint {
+                NSLayoutConstraint.deactivate([heightAnchorConstraint])
+            }
+            heightAnchorConstraint = nil
+        }
+    }
+
+    private func addHeightConstraint() {
+        guard allowAutogrowing, heightAnchorConstraint == nil else { return }
+        let heightConstraint = heightAnchor.constraint(greaterThanOrEqualToConstant: contentSize.height)
+        heightConstraint.priority = .defaultHigh
+        heightAnchorConstraint = heightConstraint
+        NSLayoutConstraint.activate([heightConstraint])
     }
 
     override func layoutSubviews() {
@@ -65,11 +89,13 @@ class AutogrowingTextView: UITextView {
         recalculateHeight()
     }
 
-    private func recalculateHeight() {
+    func recalculateHeight(size: CGSize? = nil) {
+        guard allowAutogrowing else { return }
         let bounds = self.bounds.integral
-        let fittingSize = self.calculatedSize(attributedText: attributedText, frame: frame.size, textContainerInset: textContainerInset)
+        let sizeToUse = size ?? frame.size
+        let fittingSize = self.calculatedSize(attributedText: attributedText, frame: sizeToUse, textContainerInset: textContainerInset)
         self.isScrollEnabled = (fittingSize.height > bounds.height) || (self.maxHeight > 0 && self.maxHeight < fittingSize.height)
-        heightAnchorConstraint.constant = min(fittingSize.height, contentSize.height)
+        heightAnchorConstraint?.constant = min(fittingSize.height, contentSize.height)
     }
 
     override open func sizeThatFits(_ size: CGSize) -> CGSize {
@@ -93,12 +119,44 @@ class AutogrowingTextView: UITextView {
     }
 
     private func calculatedSize(attributedText: NSAttributedString, frame: CGSize, textContainerInset: UIEdgeInsets) -> CGSize {
-        // Adjust for horizontal paddings in textview to exclude from overall available width for attachment
         let horizontalAdjustments = (textContainer.lineFragmentPadding * 2) + (textContainerInset.left + textContainerInset.right)
-        let boundingRect = attributedText.boundingRect(with: CGSize(width: frame.width - horizontalAdjustments, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin], context: nil).integral
+        let measuringWidth = max(0, frame.width - horizontalAdjustments)
+        let calculationKey = HeightCalculationKey(
+            width: measuringWidth.rounded(.up),
+            textLength: attributedText.length,
+            contentHeight: contentSize.height.rounded(.up),
+            inset: textContainerInset
+        )
+
+        if calculationKey == lastHeightCalculationKey, let cachedSize = lastCalculatedSize {
+            return cachedSize
+        }
+
+        let isMeasuringCurrentWidth = abs(frame.width.rounded(.up) - bounds.width.rounded(.up)) <= 1
+        if attributedText.length > Self.largeTextMeasurementThreshold,
+           isMeasuringCurrentWidth,
+           contentSize.height > 0 {
+            let calculatedSize = CGSize(width: frame.width, height: contentSize.height)
+            lastHeightCalculationKey = calculationKey
+            lastCalculatedSize = calculatedSize
+            return calculatedSize
+        }
+
+        // Adjust for horizontal paddings in textview to exclude from overall available width for attachment
+        let boundingRect = attributedText.boundingRect(with: CGSize(width: measuringWidth, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin], context: nil).integral
 
         let insets = UIEdgeInsets(top: -textContainerInset.top, left: -textContainerInset.left, bottom: -textContainerInset.bottom, right: -textContainerInset.right)
-        return boundingRect.inset(by: insets).size
+        let calculatedSize = boundingRect.inset(by: insets).size
+        lastHeightCalculationKey = calculationKey
+        lastCalculatedSize = calculatedSize
+        return calculatedSize
     }
     
+}
+
+private struct HeightCalculationKey: Equatable {
+    let width: CGFloat
+    let textLength: Int
+    let contentHeight: CGFloat
+    let inset: UIEdgeInsets
 }
