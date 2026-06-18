@@ -108,7 +108,8 @@ open class EditorView: UIView {
     let richTextView: RichTextView
     let context: RichTextViewContext
     var needsAsyncTextResolution = false
-    
+    private var linkDetectionGeneration = 0
+
     public var contentSize: CGSize {
         richTextView.alwaysBounceVertical = true
         return richTextView.contentSize
@@ -1008,6 +1009,28 @@ open class EditorView: UIView {
         unregisterCommands([command])
     }
 
+    /// Relayout `EditorView` on demand. This may be required if the size appears incorrect, for e.g. when hosted in a ScrollView.
+    /// - Parameter size: Size to use for relayout. When nil, default bounds are used.
+    public func relayout(size: CGSize? = nil) {
+        richTextView.recalculateHeight(size: size)
+    }
+
+    /// Set how editor height is updated based on content.
+    /// Use `false` when the editor is hosted by another scroll container; this avoids the expensive full-text height pass.
+    public func setAutogrowing(_ isAutogrowing: Bool) {
+        richTextView.setAutogrowing(isAutogrowing)
+    }
+
+    /// Forces TextKit to lay out the editor and immediately updates hosted attachment frames.
+    /// Useful for editors hosted in a fixed scroll container with autogrowing disabled.
+    /// - Parameters:
+    ///   - range: Character range whose attachments should be refreshed. When nil, all attachments are refreshed.
+    ///   - allowsAttachmentFocus: Whether newly rendered focusable attachments may become first responder.
+    public func refreshAttachmentLayout(in range: NSRange? = nil, allowsAttachmentFocus: Bool = false) {
+        richTextView.layoutManager.ensureLayout(for: richTextView.textContainer)
+        relayoutAttachments(in: range, allowsAttachmentFocus: allowsAttachmentFocus)
+    }
+
     open override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
         return richTextView.canPerformAction(action, withSender: sender)
     }
@@ -1071,15 +1094,41 @@ open class EditorView: UIView {
     }
     
     public func detect() {
-        let detector = try! NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
-        var range: NSRange? = nil
-        detector.enumerateMatches(in: attributedText.string, options: [], range: NSMakeRange(0, attributedText.length)) { (match, _, _) in
-            if let matchRange = match?.range, let url = match?.url {
-                self.addAttributes([.link: url, .underlineStyle: NSUnderlineStyle.single.rawValue], at: matchRange)
-                range = matchRange
-           }
+        let text = attributedText.string
+        let detectionRange = NSRange(location: 0, length: (text as NSString).length)
+        linkDetectionGeneration += 1
+        let generation = linkDetectionGeneration
+
+        applyLinkDetectionTypingAttributes()
+
+        guard detectionRange.length > 0 else {
+            return
         }
-        
+
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else { return }
+            var matches: [(range: NSRange, url: URL, text: String)] = []
+            let nsText = text as NSString
+            detector.enumerateMatches(in: text, options: [], range: detectionRange) { match, _, _ in
+                guard let matchRange = match?.range, let url = match?.url else { return }
+                matches.append((matchRange, url, nsText.substring(with: matchRange)))
+            }
+
+            DispatchQueue.main.async { [weak self] in
+                guard let self, generation == self.linkDetectionGeneration else { return }
+                let currentText = self.attributedText.string as NSString
+                for match in matches {
+                    guard NSMaxRange(match.range) <= currentText.length,
+                          currentText.substring(with: match.range) == match.text else {
+                        continue
+                    }
+                    self.addAttributes([.link: match.url, .underlineStyle: NSUnderlineStyle.single.rawValue], at: match.range)
+                }
+            }
+        }
+    }
+
+    private func applyLinkDetectionTypingAttributes() {
         switch mode {
         case .dark:
             if let textColor = self.typingAttributes[.foregroundColor] as? UIColor,
@@ -1089,12 +1138,10 @@ open class EditorView: UIView {
         case .light:
             break
         }
-        
-        if let link = self.typingAttributes[.link] {
+
+        if self.typingAttributes[.link] != nil {
             self.typingAttributes[.link] = nil
-            if let range, range.location >= 2, self.attributedText.attribute(.underlineStyle, at: range.location - 1, effectiveRange: nil) == nil {
-                self.typingAttributes[.underlineStyle] = nil
-            }
+            self.typingAttributes[.underlineStyle] = nil
         }
     }
     
@@ -1238,7 +1285,7 @@ extension EditorView: RichTextViewDelegate {
 
     func richTextView(_ richTextView: RichTextView, didFinishLayout finished: Bool) {
         guard finished else { return }
-        relayoutAttachments()
+        relayoutAttachments(allowsAttachmentFocus: !isSettingAttributedText && richTextView.isFirstResponder)
         resolveAsyncText()
     }
 
@@ -1256,7 +1303,7 @@ extension EditorView {
         richTextView.invalidateLayout(for: range)
     }
 
-    func relayoutAttachments(in range: NSRange? = nil) {
+    func relayoutAttachments(in range: NSRange? = nil, allowsAttachmentFocus: Bool = true) {
         let rangeToUse = range ?? NSRange(location: 0, length: contentLength)
         richTextView.enumerateAttribute(.attachment, in: rangeToUse, options: .longestEffectiveRangeNotRequired) { (attach, range, _) in
             guard let attachment = attach as? Attachment else { return }
@@ -1288,7 +1335,9 @@ extension EditorView {
 
             if attachment.isRendered == false {
                 attachment.render(in: self)
-                if !isSettingAttributedText, let focusable = attachment.contentView as? Focusable {
+                if allowsAttachmentFocus,
+                   !isSettingAttributedText,
+                   let focusable = attachment.contentView as? Focusable {
                     focusable.setFocus()
                 }
             }
