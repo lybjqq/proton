@@ -740,7 +740,18 @@ class RichTextView: AutogrowingTextView {
 
     func didTap(at location: CGPoint) {
         let characterRange = rangeOfCharacter(at: location)
+        updateSelectionForTap(at: location, characterRange: characterRange)
         richTextViewDelegate?.richTextView(self, didTapAtLocation: location, characterRange: characterRange)
+    }
+
+    private func updateSelectionForTap(at location: CGPoint, characterRange: NSRange?) {
+        if let characterRange {
+            selectedRange = NSRange(location: min(characterRange.location + 1, contentLength), length: 0)
+            return
+        }
+
+        guard let position = closestPosition(to: location) else { return }
+        selectedRange = NSRange(location: offset(from: beginningOfDocument, to: position), length: 0)
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -748,6 +759,7 @@ class RichTextView: AutogrowingTextView {
             let position = touch.location(in: self)
             didTap(at: position)
         }
+        super.touchesBegan(touches, with: event)
     }
 
     // When a user enables `Use keyboard navigation to move focus between controls` it enables the focus system in the app.
@@ -849,9 +861,14 @@ class RichTextView: AutogrowingTextView {
         }
 
         let location = offset(from: beginningOfDocument, to: position)
+        var caretRect = super.caretRect(for: position)
+
+        if let attachmentCaretRect = caretRectAfterAttachment(at: location, fallback: caretRect) {
+            return attachmentCaretRect
+        }
+
         let lineRect = layoutManager.boundingRect(forGlyphRange: NSRange(location: location, length: 0), in: textContainer)
 
-        var caretRect = super.caretRect(for: position)
         caretRect.origin.y = lineRect.minY + textContainerInset.top
         caretRect.size.height = lineRect.height
         if location < (editorView?.contentLength ?? 0), location >= 1,
@@ -864,6 +881,35 @@ class RichTextView: AutogrowingTextView {
         }
 
         return caretRect
+    }
+
+    private func caretRectAfterAttachment(at location: Int, fallback: CGRect) -> CGRect? {
+        guard location >= 1, attributedText.length > 0 else { return nil }
+
+        if let attachment = attachmentBeforeCaret(at: location) {
+            return caretRect(after: attachment, fallback: fallback)
+        }
+
+        guard location >= 2 else { return nil }
+        let previousCharacter = (attributedText.string as NSString).substring(with: NSRange(location: location - 1, length: 1))
+        guard previousCharacter == "\n", let attachment = attachmentBeforeCaret(at: location - 1) else { return nil }
+        return caretRect(after: attachment, fallback: fallback)
+    }
+
+    private func attachmentBeforeCaret(at location: Int) -> Attachment? {
+        guard location >= 1, location - 1 < attributedText.length else { return nil }
+        return attributedText.attribute(.attachment, at: location - 1, effectiveRange: nil) as? Attachment
+    }
+
+    private func caretRect(after attachment: Attachment, fallback: CGRect) -> CGRect? {
+        guard let attachmentFrame = attachment.frame else { return nil }
+        let font = typingAttributes[.font] as? UIFont ?? self.font
+        return CGRect(
+            x: fallback.minX,
+            y: attachmentFrame.maxY + 4,
+            width: max(fallback.width, 2),
+            height: max(font?.lineHeight ?? 0, fallback.height, 20)
+        )
     }
     
     override func selectionRects(for range: UITextRange) -> [UITextSelectionRect] {
